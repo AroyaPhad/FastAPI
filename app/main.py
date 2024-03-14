@@ -1,6 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 import numpy as np
 import tensorflow as tf
 from PIL import Image
@@ -14,16 +15,19 @@ from fastapi.responses import StreamingResponse
 from face_detection import detect_and_crop_faces
 from load_process import load_and_preprocess_image
 from rois import rois_and_ocr
+from db import query_all_students, insert_student_data
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[""],
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=[""],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/admin", StaticFiles(directory="admin", html = True), name="admin")
 
 siamese_model = tf.keras.models.load_model('/Users/bubu/Desktop/fastapi/siamese_model_vgg4.h5')
 
@@ -97,6 +101,7 @@ async def faces_recognition(id_photo: UploadFile = File(...), selfie: UploadFile
         if average_similarity_score >= 0.6:
             result = "same person."
             is_verified = True
+            insert_student_data(student_id, name)   # << insert ocr data to db
         else:
             result = "different persons."
             is_verified = False
@@ -111,3 +116,7 @@ async def faces_recognition(id_photo: UploadFile = File(...), selfie: UploadFile
         "student_id": student_id,
         "name": name.strip()
     }
+
+@app.get("/api/v1/student")
+async def get_student():
+    return query_all_students()
