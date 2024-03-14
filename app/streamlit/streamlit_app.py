@@ -114,7 +114,7 @@ async def main():
 
             if average_similarity_score >= 0.6:
                 st.write("same person.")
-            else:
+
                 st.write("different persons.")
         
             student_id, name = await read_image(id_photo_pil)
