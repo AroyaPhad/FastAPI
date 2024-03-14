@@ -6,16 +6,18 @@ import numpy as np
 import tensorflow as tf
 from PIL import Image
 import io
-import ocr
 import os
 import shutil
+from pydantic import BaseModel
+from bson.json_util import dumps
 
 from fastapi.responses import StreamingResponse
 
-from face_detection import detect_and_crop_faces
-from load_process import load_and_preprocess_image
-from rois import rois_and_ocr
-from db import query_all_students, insert_student_data
+from app.ocr import read_image
+from app.face_detection import detect_and_crop_faces
+from app.load_process import load_and_preprocess_image
+from app.rois import rois_and_ocr
+from app.db import query_all_students, insert_student_data
 
 app = FastAPI()
 
@@ -27,9 +29,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/admin", StaticFiles(directory="admin", html = True), name="admin")
+app.mount("/admin", StaticFiles(directory="app/admin", html = True), name="admin")
 
-siamese_model = tf.keras.models.load_model('/Users/bubu/Desktop/fastapi/siamese_model_vgg4.h5')
+siamese_model = tf.keras.models.load_model('C:\\Users\\COMUPDATE\\Downloads\\fastapi\\fastapi\\siamese_model_vgg4.h5')
 
 
 def compare_images(id_image, selfie_image):
@@ -63,7 +65,7 @@ async def detect_faces(image: UploadFile = File(...)):
 @app.post("/api/v1/extract_text")
 async def extract_text(image: UploadFile = File(...)):
     temp_file = _save_file_to_disk(image, path="temp", save_as="temp")
-    text = await ocr.read_image(temp_file)
+    text = await read_image(temp_file)
     return {"filename": image.filename, "text": text}
 
 def _save_file_to_disk(uploaded_file, path=".", save_as="default"):
@@ -101,7 +103,7 @@ async def faces_recognition(id_photo: UploadFile = File(...), selfie: UploadFile
         if average_similarity_score >= 0.6:
             result = "same person."
             is_verified = True
-            insert_student_data(student_id, name)   # << insert ocr data to db
+            insert_student_data(str(student_id), str(name))   # << insert ocr data to db
         else:
             result = "different persons."
             is_verified = False
@@ -119,4 +121,17 @@ async def faces_recognition(id_photo: UploadFile = File(...), selfie: UploadFile
 
 @app.get("/api/v1/student")
 async def get_student():
-    return query_all_students()
+    result = query_all_students()
+    return {
+        "data": dumps(result)
+    }
+
+class Student(BaseModel):
+    id: str
+    name: str
+
+@app.post("/api/v1/student")
+async def post_student(student: Student):
+    return {
+        "inserted_result": insert_student_data(student.id, student.name)
+    }
