@@ -97,13 +97,15 @@ async def faces_recognition(id_photo: UploadFile = File(...), selfie: UploadFile
         score = compare_images(id_image, selfie_image)
         average_similarity_score = np.mean(score)
 
-        student_id, name = await rois_and_ocr(id_photo_im)
-        student_id = student_id.strip().replace(" ", "")
+        # student_id, name = await rois_and_ocr(id_photo_im)
+        # student_id = student_id.strip().replace(" ", "")
+
+        # print(student_id, name)
 
         if average_similarity_score >= 0.6:
             result = "same person."
             is_verified = True
-            insert_student_data(str(student_id), str(name))   # << insert ocr data to db
+            # insert_student_data(str(student_id), str(name))   # << insert ocr data to db
         else:
             result = "different persons."
             is_verified = False
@@ -112,11 +114,11 @@ async def faces_recognition(id_photo: UploadFile = File(...), selfie: UploadFile
         is_verified = False
 
     return {
-        "vetify": bool(is_verified),
+        "verify": bool(is_verified),
         "result": result,
         "score": float(average_similarity_score),
-        "student_id": student_id,
-        "name": name.strip()
+        # "student_id": student_id,
+        # "name": name.strip()
     }
 
 @app.get("/api/v1/student")
