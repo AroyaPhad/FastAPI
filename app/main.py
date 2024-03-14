@@ -13,7 +13,7 @@ from fastapi.responses import StreamingResponse
 
 from face_detection import detect_and_crop_faces
 from load_process import load_and_preprocess_image
-from ocr import read_image
+from rois import rois_and_ocr
 
 app = FastAPI()
 
@@ -91,7 +91,8 @@ async def faces_recognition(id_photo: UploadFile = File(...), selfie: UploadFile
         score = compare_images(id_image, selfie_image)
         average_similarity_score = np.mean(score)
 
-        student_id = await ocr.read_image(id_photo_im)
+        student_id, name = await rois_and_ocr(id_photo_im)
+        student_id = student_id.strip().replace(" ", "")
 
         if average_similarity_score >= 0.6:
             result = "same person."
@@ -108,4 +109,5 @@ async def faces_recognition(id_photo: UploadFile = File(...), selfie: UploadFile
         "result": result,
         "score": float(average_similarity_score),
         "student_id": student_id,
+        "name": name.strip()
     }
