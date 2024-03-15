@@ -96,6 +96,15 @@ async def faces_recognition(id_photo: UploadFile = File(...), selfie: UploadFile
     id_cropped_face = detect_and_crop_faces(id_photo_im)
     selfie_cropped_face = detect_and_crop_faces(selfie_im)
 
+    def save_image(image_array, filename):
+        # Convert NumPy array to PIL image
+        image = Image.fromarray(image_array)
+        # Save the image locally
+        image.save(filename)
+
+    save_image(id_cropped_face, 'id_cropped_face.jpg')
+    save_image(selfie_cropped_face, 'selfie_cropped_face.jpg')
+
     if id_cropped_face is not None and selfie_cropped_face is not None:
         id_image = load_and_preprocess_image(id_cropped_face)
         selfie_image = load_and_preprocess_image(selfie_cropped_face)
@@ -119,15 +128,7 @@ async def faces_recognition(id_photo: UploadFile = File(...), selfie: UploadFile
         result = "No faces detected in one or both images."
         is_verified = False
 
-    if id_cropped_face is not None:
-
-        img_bytes = io.BytesIO()
-        Image.fromarray(id_cropped_face).save(img_bytes, format='JPEG')
-        img_bytes = img_bytes.getvalue()
-        return StreamingResponse(io.BytesIO(img_bytes), media_type="image/jpeg")
-    else:
-        return JSONResponse(content={"message": "No faces detected in the image."})
-
+        
     return {
         "verify": bool(is_verified),
         "result": result,
