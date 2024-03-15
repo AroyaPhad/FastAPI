@@ -13,11 +13,9 @@ siamese_model = tf.keras.models.load_model('/Users/bubu/Desktop/fastapi/siamese_
 async def extract_info_from_text(text):
     try:
         student_id_text = ""
-        name_text = ""
 
         lines = text.split("\n")
         id_pattern = r'(\d{13})'
-        name_pattern = r'\b[A-Z]{3,}+[A-Z]{3,}'
 
         for line in lines:
             if not student_id_text:
@@ -25,14 +23,10 @@ async def extract_info_from_text(text):
                 if student_id_match:
                     student_id_text = student_id_match.group()
 
-            if not name_text:
-                name_match = re.search(name_pattern, line)
-                if name_match:
-                    name_text = name_match.group()
 
-            if student_id_text and name_text:
+            if student_id_text:
                 break
-        return student_id_text, name_text
+        return student_id_text
     except Exception as e:
         return str(e)
 
@@ -117,10 +111,10 @@ async def main():
 
                 st.write("different persons.")
         
-            student_id, name = await read_image(id_photo_pil)
+            # student_id, name = await read_image(id_photo_pil)
 
-            st.write("Student ID:", student_id)
-            st.write("Name:", name)
+            # st.write("Student ID:", student_id)
+            # st.write("Name:", name)
         else:
             st.write("No faces detected in one or both images.")
 

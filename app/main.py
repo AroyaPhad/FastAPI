@@ -13,11 +13,17 @@ from bson.json_util import dumps
 
 from fastapi.responses import StreamingResponse
 
-from app.ocr import read_image
-from app.face_detection import detect_and_crop_faces
-from app.load_process import load_and_preprocess_image
-from app.rois import rois_and_ocr
-from app.db import query_all_students, insert_student_data
+# from app.ocr import read_image
+# from app.face_detection import detect_and_crop_faces
+# from app.load_process import load_and_preprocess_image
+# from app.rois import rois_and_ocr
+# from app.db import query_all_students, insert_student_data
+
+from ocr import read_image
+from face_detection import detect_and_crop_faces
+from load_process import load_and_preprocess_image
+from rois import rois_and_ocr
+from db import query_all_students, insert_student_data
 
 app = FastAPI()
 
@@ -29,9 +35,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/admin", StaticFiles(directory="app/admin", html = True), name="admin")
+app.mount("/admin", StaticFiles(directory="/Users/bubu/Desktop/fastapi/app/admin", html = True), name="admin")
 
-siamese_model = tf.keras.models.load_model('C:\\Users\\COMUPDATE\\Downloads\\fastapi\\fastapi\\siamese_model_vgg4.h5')
+siamese_model = tf.keras.models.load_model('/Users/bubu/Desktop/fastapi/siamese_model_vgg4.h5')
 
 
 def compare_images(id_image, selfie_image):
@@ -97,8 +103,8 @@ async def faces_recognition(id_photo: UploadFile = File(...), selfie: UploadFile
         score = compare_images(id_image, selfie_image)
         average_similarity_score = np.mean(score)
 
-        # student_id, name = await rois_and_ocr(id_photo_im)
-        # student_id = student_id.strip().replace(" ", "")
+        student_id, name = await rois_and_ocr(id_photo_im)
+        student_id = student_id.strip().replace(" ", "")
 
         # print(student_id, name)
 
@@ -113,13 +119,23 @@ async def faces_recognition(id_photo: UploadFile = File(...), selfie: UploadFile
         result = "No faces detected in one or both images."
         is_verified = False
 
+    if id_cropped_face is not None:
+
+        img_bytes = io.BytesIO()
+        Image.fromarray(id_cropped_face).save(img_bytes, format='JPEG')
+        img_bytes = img_bytes.getvalue()
+        return StreamingResponse(io.BytesIO(img_bytes), media_type="image/jpeg")
+    else:
+        return JSONResponse(content={"message": "No faces detected in the image."})
+
     return {
         "verify": bool(is_verified),
         "result": result,
         "score": float(average_similarity_score),
-        # "student_id": student_id,
-        # "name": name.strip()
+        "student_id": student_id,
+        "name": name.strip()
     }
+
 
 @app.get("/api/v1/student")
 async def get_student():
